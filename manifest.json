@@ -5,7 +5,11 @@
   "description": "Professional Satellite Tracking Dashboard",
   "permissions": [
     "storage",
-    "alarms"
+    "alarms",
+    "geolocation"
+  ],
+  "host_permissions": [
+    "https://celestrak.org/*"
   ],
   "background": {
     "service_worker": "background.js"

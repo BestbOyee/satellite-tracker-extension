@@ -79,7 +79,7 @@ function initGlobe() {
   ctx.arc(centerX, centerY, globeRadius, 0, Math.PI * 2);
   ctx.clip();
 
-  // 3. Latitude & Longitude Grid Lines using 3D Projection
+  // 3. Latitude & Longitude Grid Lines
   ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
   ctx.lineWidth = 1;
 
@@ -89,15 +89,9 @@ function initGlobe() {
     for (let lon = -180; lon <= 180; lon += 10) {
       let coords = projectLatLonTo3D(lat, lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
       if (coords.visible) {
-        if (!started) {
-          ctx.moveTo(coords.x, coords.y);
-          started = true;
-        } else {
-          ctx.lineTo(coords.x, coords.y);
-        }
-      } else {
-        started = false;
-      }
+        if (!started) { ctx.moveTo(coords.x, coords.y); started = true; }
+        else { ctx.lineTo(coords.x, coords.y); }
+      } else { started = false; }
     }
     ctx.stroke();
   }
@@ -109,19 +103,64 @@ function initGlobe() {
   for (let lon = -180; lon <= 180; lon += 5) {
     let coords = projectLatLonTo3D(0, lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
     if (coords.visible) {
-      if (!eqStarted) {
-        ctx.moveTo(coords.x, coords.y);
-        eqStarted = true;
-      } else {
-        ctx.lineTo(coords.x, coords.y);
-      }
-    } else {
-      eqStarted = false;
-    }
+      if (!eqStarted) { ctx.moveTo(coords.x, coords.y); eqStarted = true; }
+      else { ctx.lineTo(coords.x, coords.y); }
+    } else { eqStarted = false; }
   }
   ctx.stroke();
 
-  // 4. Plot User Location Red Dot
+  // Unified Satellite Definitions (Guarantees 100% math sync between trails and live icons)
+  const satellites = [
+    { name: "ISS", color: "#3fb950", lat: t => Math.sin(t * 0.001) * 51.6, lon: t => (t * 0.12) % 360 - 180 },
+    { name: "Hubble", color: "#58a6ff", lat: t => Math.sin(t * 0.0008) * 28.5, lon: t => (t * 0.10) % 360 - 180 },
+    { name: "Tiangong", color: "#f85149", lat: t => Math.sin(t * 0.0009) * 41.5, lon: t => (t * 0.11) % 360 - 180 },
+    { name: "NOAA-20", color: "#d29922", lat: t => Math.cos(t * 0.0012) * 98.7, lon: t => (t * 0.09) % 360 - 180 },
+    { name: "Chandra", color: "#bc8cff", lat: t => Math.sin(t * 0.0004) * 57.8, lon: t => (t * 0.05) % 360 - 180 },
+    { name: "Landsat 9", color: "#7ee787", lat: t => Math.cos(t * 0.0011) * 98.2, lon: t => (t * 0.095) % 360 - 180 }
+  ];
+
+  const nowSec = Date.now() / 1000;
+
+  // 4. ORBITAL GROUND TRACK POLYLINES (Perfectly Synced)
+  ctx.lineWidth = 1.5;
+  ctx.shadowBlur = 6;
+
+  satellites.forEach(sat => {
+    ctx.strokeStyle = sat.color;
+    ctx.shadowColor = sat.color;
+    
+    let prevCoords = null;
+    let prevLon = null;
+
+    for (let tOffset = -120; tOffset <= 0; tOffset += 2) {
+      let t = nowSec + tOffset;
+      let lat = sat.lat(t);
+      let lon = sat.lon(t);
+
+      let pCoords = projectLatLonTo3D(lat, lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
+      
+      if (pCoords.visible) {
+        let screenJump = prevCoords && (Math.abs(pCoords.x - prevCoords.x) > globeRadius || Math.abs(pCoords.y - prevCoords.y) > globeRadius);
+        let lonJump = prevLon !== null && Math.abs(lon - prevLon) > 40;
+
+        if (!prevCoords || screenJump || lonJump) {
+          ctx.beginPath();
+          ctx.moveTo(pCoords.x, pCoords.y);
+        } else {
+          ctx.lineTo(pCoords.x, pCoords.y);
+          ctx.stroke();
+        }
+        prevCoords = pCoords;
+        prevLon = lon;
+      } else {
+        prevCoords = null;
+        prevLon = null;
+      }
+    }
+  });
+  ctx.shadowBlur = 0;
+
+  // 5. Plot User Location Red Dot
   const userCoords = projectLatLonTo3D(userLocation.lat, userLocation.lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
   if (userCoords.visible) {
     ctx.shadowColor = '#f85149';
@@ -137,21 +176,12 @@ function initGlobe() {
     ctx.fillText('📍 You', userCoords.x + 8, userCoords.y + 3);
   }
 
-  // 5. Compute Live Frame-by-Frame Satellite Positions
-  const nowSec = Date.now() / 1000;
-  const liveSatellites = {
-    "25544": { name: "ISS", lat: Math.sin(nowSec * 0.001) * 51.6, lon: (nowSec * 0.12) % 360 - 180, color: "#3fb950" },
-    "20580": { name: "Hubble", lat: Math.sin(nowSec * 0.0008) * 28.5, lon: (nowSec * 0.10) % 360 - 180, color: "#58a6ff" },
-    "48274": { name: "Tiangong", lat: Math.sin(nowSec * 0.0009) * 41.5, lon: (nowSec * 0.11) % 360 - 180, color: "#f85149" },
-    "43013": { name: "NOAA-20", lat: Math.cos(nowSec * 0.0012) * 98.7, lon: (nowSec * 0.09) % 360 - 180, color: "#d29922" },
-    "25867": { name: "Chandra", lat: Math.sin(nowSec * 0.0004) * 57.8, lon: (nowSec * 0.05) % 360 - 180, color: "#bc8cff" },
-    "49260": { name: "Landsat 9", lat: Math.cos(nowSec * 0.0011) * 98.2, lon: (nowSec * 0.095) % 360 - 180, color: "#7ee787" }
-  };
-
-  // Plot All Satellites Smoothly
-  for (let satId in liveSatellites) {
-    let sat = liveSatellites[satId];
-    const satCoords = projectLatLonTo3D(sat.lat, sat.lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
+  // 6. Plot Live Satellites (Using the exact same shared formulas!)
+  satellites.forEach(sat => {
+    let lat = sat.lat(nowSec);
+    let lon = sat.lon(nowSec);
+    const satCoords = projectLatLonTo3D(lat, lon, centerX, centerY, globeRadius, rotationOffset, pitchOffset);
+    
     if (satCoords.visible) {
       ctx.shadowColor = sat.color;
       ctx.shadowBlur = 12;
@@ -165,11 +195,31 @@ function initGlobe() {
       ctx.font = 'bold 11px monospace';
       ctx.fillText(`🛰️ ${sat.name}`, satCoords.x + 8, satCoords.y - 4);
     }
-  }
+  });
 
   ctx.restore();
 }
+// Calculate Sun's sub-solar latitude and longitude based on current UTC time
+function getSunCoordinates() {
+  const now = new Date();
+  const startOfYear = new Date(now.getFullYear(), 0, 1);
+  const dayOfYear = Math.floor((now - startOfYear) / (1000 * 60 * 60 * 24));
+  
+  // Approximate solar declination angle (tilt of the Earth relative to the sun)
+  const declination = -23.45 * Math.cos((2 * Math.PI / 365) * (dayOfYear + 10));
+  
+  // Sub-solar longitude based on UTC hours, minutes, and seconds
+  const utcHours = now.getUTCHours() + now.getUTCMinutes() / 60 + now.getUTCSeconds / 3600;
+  const sunLon = -15 * (utcHours - 12); // 15 degrees per hour, 0 at noon UTC
+  
+  return { lat: declination, lon: normalizeLon(sunLon) };
+}
 
+function normalizeLon(lon) {
+  while (lon > 180) lon -= 360;
+  while (lon < -180) lon += 360;
+  return lon;
+}
 // Robust 3D Matrix Projection Engine
 function projectLatLonTo3D(lat, lon, cx, cy, radius, rotOffset, pitch) {
   let phi = (lat * Math.PI) / 180;

@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Orbital Mission Control</title>
+  <link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+  <div class="mission-container">
+    
+    <!-- LEFT SIDEBAR: Controls & Live Telemetry -->
+    <aside class="side-panel">
+      <div class="brand-header">
+        <h1>🛰️ Mission Control</h1>
+        <p class="subtitle">Orbital Tracking Suite</p>
+        <button id="toggle-tab-mode" class="mode-toggle-btn" title="Switch between Mission Control and Standard Tab mode">Standard Tab Mode</button>
+      </div>
+
+      <div class="card selector-card">
+        <label for="satellite-select" class="selector-label">Target Vehicle</label>
+        <select id="satellite-select">
+          <option value="25544">International Space Station (ISS)</option>
+          <option value="20580">Hubble Space Telescope</option>
+          <option value="48274">Tiangong Space Station</option>
+          <option value="43013">NOAA-20 Weather Satellite</option>
+          <option value="25867">Chandra X-Ray Observatory</option>
+          <option value="49260">Landsat 9 Earth Observer</option>
+        </select>
+      </div>
+
+      <div class="card telemetry-card">
+        <h2>Live Telemetry</h2>
+        <div class="info-row">
+          <span class="label">Status:</span>
+          <span id="conn-status" class="value">Synced Live</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Altitude:</span>
+          <span id="iss-alt" class="value">-- km</span>
+        </div>
+        <div class="info-row">
+          <span class="label">Velocity:</span>
+          <span id="iss-vel" class="value">-- km/s</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- CENTER MAIN DISPLAY: Countdown & 3D Globe -->
+    <main class="main-panel">
+      <div class="countdown-section">
+        <h2>Active Pass Countdown</h2>
+        <div class="timer-display">
+          <div class="time-block">
+            <span id="timer-hours">00</span>
+            <span class="time-label">HOURS</span>
+          </div>
+          <span class="colon">:</span>
+          <div class="time-block">
+            <span id="timer-minutes">00</span>
+            <span class="time-label">MINUTES</span>
+          </div>
+          <span class="colon">:</span>
+          <div class="time-block">
+            <span id="timer-seconds">00</span>
+            <span class="time-label">SECONDS</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="card map-card">
+        <div class="map-header">
+          <h2>3D Earth Globe & Trajectories</h2>
+          <span class="map-instructions">Drag to Rotate/Tilt | Scroll to Zoom</span>
+        </div>
+        <canvas id="globeCanvas"></canvas>
+      </div>
+    </main>
+
+    <!-- RIGHT SIDEBAR: Pass Look Angles -->
+    <aside class="side-panel">
+      <div class="card pass-card">
+        <h2>Pass Look Angles</h2>
+        <div class="info-row vertical">
+          <span class="label">Rise Direction:</span>
+          <span id="pass-rise" class="value">--</span>
+        </div>
+        <div class="info-row vertical">
+          <span class="label">Set Direction:</span>
+          <span id="pass-set" class="value">--</span>
+        </div>
+        <div class="info-row vertical">
+          <span class="label">Max Elevation:</span>
+          <span id="pass-elevation" class="value">--</span>
+        </div>
+        <div class="info-row vertical">
+          <span class="label">Duration:</span>
+          <span id="pass-duration" class="value">-- min</span>
+        </div>
+      </div>
+    </aside>
+
+  </div>
+
+  <script src="newtab.js"></script>
+</body>
+</html>
